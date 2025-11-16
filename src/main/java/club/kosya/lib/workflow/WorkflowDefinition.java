@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 public class WorkflowDefinition {
-    private BeanReference beanReference;
+    private ServiceIdentifier serviceIdentifier;
     private String methodName;
     private String methodDescriptor;
     private List<Object> parameters;

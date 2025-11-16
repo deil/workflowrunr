@@ -1,4 +1,4 @@
-package club.kosya.duraexec.internal;
+package club.kosya.lib.executionengine;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

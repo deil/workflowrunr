@@ -1,7 +1,7 @@
 package club.kosya.duraexec.workflows;
 
-import club.kosya.duraexec.ExecutionContext;
-import club.kosya.duraexec.ExecutionResult;
+import club.kosya.lib.workflow.ExecutionContext;
+import club.kosya.duraexec.internal.ExecutionResult;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 
-import static club.kosya.duraexec.internal.ExecutionContextImpl.executeProcess;
+import static club.kosya.lib.executionengine.ExecutionContextImpl.executeProcess;
 
 @Slf4j
 @Component

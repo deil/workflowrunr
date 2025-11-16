@@ -1,4 +1,4 @@
-package club.kosya.duraexec.internal
+package club.kosya.lib.executionengine
 
 enum class ExecutionStatus {
     Queued,

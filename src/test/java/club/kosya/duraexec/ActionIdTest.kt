@@ -1,7 +1,8 @@
 package club.kosya.duraexec
 
-import club.kosya.duraexec.ExecutionContext
-import club.kosya.duraexec.internal.ExecutionsRepository
+import club.kosya.lib.executionengine.ExecutionsRepository
+import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
+import club.kosya.lib.workflow.ExecutionContext
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -11,14 +12,13 @@ import org.mockito.Mockito.mock
  * Tests deterministic action ID generation in ExecutionContext.
  */
 class ActionIdTest {
-
     private val objectMapper = ObjectMapper()
     private val executions = mock(ExecutionsRepository::class.java)
 
     @Test
     fun `test action IDs are deterministic for sequential actions`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act
         val id1 = ctx.generateActionId("fetch")
@@ -34,8 +34,8 @@ class ActionIdTest {
     @Test
     fun `test same action name produces same ID at same position`() {
         // Arrange
-        val ctx1 = ExecutionContext("1", objectMapper, executions)
-        val ctx2 = ExecutionContext("2", objectMapper, executions)
+        val ctx1 = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx2 = ExecutionContextImplementation("2", objectMapper, executions)
 
         // Act
         val id1 = ctx1.generateActionId("fetch")
@@ -48,8 +48,8 @@ class ActionIdTest {
     @Test
     fun `test different action names at same position produce same ID`() {
         // Arrange
-        val ctx1 = ExecutionContext("1", objectMapper, executions)
-        val ctx2 = ExecutionContext("2", objectMapper, executions)
+        val ctx1 = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx2 = ExecutionContextImplementation("2", objectMapper, executions)
 
         // Act
         val id1 = ctx1.generateActionId("fetch")
@@ -62,7 +62,7 @@ class ActionIdTest {
     @Test
     fun `test nested actions have hierarchical IDs`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act - simulate nesting
         val rootId = ctx.generateActionId("root")
@@ -82,7 +82,7 @@ class ActionIdTest {
     @Test
     fun `test deeply nested actions`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act - simulate deep nesting: root -> level1 -> level2
         val rootId = ctx.generateActionId("root")
@@ -105,7 +105,7 @@ class ActionIdTest {
     @Test
     fun `test multiple nested branches have independent counters`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act - simulate: root -> (nested1, nested2), root2 -> (nested3)
         val root1 = ctx.generateActionId("root1")
@@ -130,7 +130,7 @@ class ActionIdTest {
     @Test
     fun `test complex nested structure`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act - simulate complex tree:
         // root
@@ -162,7 +162,7 @@ class ActionIdTest {
     @Test
     fun `test action counter resets after exiting nested context`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act
         val action1 = ctx.generateActionId("action1")
@@ -183,20 +183,20 @@ class ActionIdTest {
     }
 
     @Test
-    fun `test placeholder context does not track actions`() {
+    fun `test placeholder context throws on action execution`() {
         // Arrange
         val ctx = ExecutionContext.Placeholder
 
         // Act & Assert
-        assertDoesNotThrow {
-            ctx.generateActionId("test")
+        assertThrows(UnsupportedOperationException::class.java) {
+            ctx.action("test") { "result" }
         }
     }
 
     @Test
     fun `test action IDs are reproducible across context restarts`() {
         // Arrange - simulate first execution
-        val ctx1 = ExecutionContext("1", objectMapper, executions)
+        val ctx1 = ExecutionContextImplementation("1", objectMapper, executions)
         val ids1 = mutableListOf<String>()
 
         // Act - first execution
@@ -207,7 +207,7 @@ class ActionIdTest {
         ids1.add(ctx1.generateActionId("save"))
 
         // Arrange - simulate replay
-        val ctx2 = ExecutionContext("1", objectMapper, executions)
+        val ctx2 = ExecutionContextImplementation("1", objectMapper, executions)
         val ids2 = mutableListOf<String>()
 
         // Act - replay with same structure

@@ -1,6 +1,6 @@
-package club.kosya.duraexec.internal
+package club.kosya.lib.executionengine
 
-import club.kosya.duraexec.ExecutionContext
+import club.kosya.lib.workflow.ExecutionContext
 import org.slf4j.LoggerFactory
 
 class WorkflowAction(

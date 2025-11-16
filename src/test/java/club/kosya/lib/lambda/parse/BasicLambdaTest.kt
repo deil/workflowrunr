@@ -1,9 +1,10 @@
 package club.kosya.lib.lambda.parse
 
-import club.kosya.duraexec.ExecutionContext
-import club.kosya.duraexec.WorkflowDefinitionConverter
+import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
+import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.lambda.TypedWorkflowLambda
 import club.kosya.lib.lambda.WorkflowLambda
+import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test
  * Tests basic lambda parsing scenarios.
  */
 class BasicLambdaTest {
-
     private lateinit var converter: WorkflowDefinitionConverter
     private lateinit var testService: TestService
 
@@ -29,14 +29,15 @@ class BasicLambdaTest {
         val ctx = ExecutionContext.Placeholder
 
         // Act
-        val definition = converter.toWorkflowDefinition(
-            WorkflowLambda { testService.doWork(ctx, param1) }
-        )
+        val definition =
+            converter.toWorkflowDefinition(
+                WorkflowLambda { testService.doWork(ctx, param1) },
+            )
 
         // Assert
         assertNotNull(definition)
-        assertNotNull(definition.beanReference)
-        assertEquals(TestService::class.java.name, definition.beanReference.className)
+        assertNotNull(definition.serviceIdentifier)
+        assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
         assertNotNull(definition.methodDescriptor)
         assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
@@ -52,13 +53,14 @@ class BasicLambdaTest {
         val ctx = ExecutionContext.Placeholder
 
         // Act
-        val definition = converter.toWorkflowDefinition(
-            WorkflowLambda { testService.doComplexWork(ctx, param1, param2) }
-        )
+        val definition =
+            converter.toWorkflowDefinition(
+                WorkflowLambda { testService.doComplexWork(ctx, param1, param2) },
+            )
 
         // Assert
         assertNotNull(definition)
-        assertEquals(TestService::class.java.name, definition.beanReference.className)
+        assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doComplexWork", definition.methodName)
         assertEquals(3, definition.parameters.size) // Now includes ExecutionContext
         assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
@@ -73,14 +75,15 @@ class BasicLambdaTest {
         val ctx = ExecutionContext.Placeholder
 
         // Act
-        val definition = converter.toWorkflowDefinition(
-            TypedWorkflowLambda<TestService> { it.doWork(ctx, param1) }
-        )
+        val definition =
+            converter.toWorkflowDefinition(
+                TypedWorkflowLambda<TestService> { it.doWork(ctx, param1) },
+            )
 
         // Assert
         assertNotNull(definition)
-        assertNotNull(definition.beanReference)
-        assertEquals(TestService::class.java.name, definition.beanReference.className)
+        assertNotNull(definition.serviceIdentifier)
+        assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
         assertNotNull(definition.methodDescriptor)
         assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
@@ -96,13 +99,14 @@ class BasicLambdaTest {
         val ctx = ExecutionContext.Placeholder
 
         // Act
-        val definition = converter.toWorkflowDefinition(
-            TypedWorkflowLambda<TestService> { it.doComplexWork(ctx, param1, param2) }
-        )
+        val definition =
+            converter.toWorkflowDefinition(
+                TypedWorkflowLambda<TestService> { it.doComplexWork(ctx, param1, param2) },
+            )
 
         // Assert
         assertNotNull(definition)
-        assertEquals(TestService::class.java.name, definition.beanReference.className)
+        assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doComplexWork", definition.methodName)
         assertEquals(3, definition.parameters.size) // Now includes ExecutionContext
         assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
@@ -116,16 +120,18 @@ class BasicLambdaTest {
         val ctx = ExecutionContext.Placeholder
 
         // Act
-        val instanceDef = converter.toWorkflowDefinition(
-            WorkflowLambda { testService.doWork(ctx, "test") }
-        )
-        val typedDef = converter.toWorkflowDefinition(
-            TypedWorkflowLambda<TestService> { it.doWork(ctx, "test") }
-        )
+        val instanceDef =
+            converter.toWorkflowDefinition(
+                WorkflowLambda { testService.doWork(ctx, "test") },
+            )
+        val typedDef =
+            converter.toWorkflowDefinition(
+                TypedWorkflowLambda<TestService> { it.doWork(ctx, "test") },
+            )
 
         // Assert - Both resolve by type
-        assertEquals(TestService::class.java.name, instanceDef.beanReference.className)
-        assertEquals(TestService::class.java.name, typedDef.beanReference.className)
+        assertEquals(TestService::class.java.name, instanceDef.serviceIdentifier.className)
+        assertEquals(TestService::class.java.name, typedDef.serviceIdentifier.className)
         assertEquals(instanceDef.methodName, typedDef.methodName)
         assertEquals(instanceDef.parameters, typedDef.parameters)
     }
@@ -134,12 +140,15 @@ class BasicLambdaTest {
      * Test service used for lambda testing
      */
     class TestService {
-        fun doWork(ctx: ExecutionContext, input: String): String {
-            return "Result: $input"
-        }
+        fun doWork(
+            ctx: ExecutionContext,
+            input: String,
+        ): String = "Result: $input"
 
-        fun doComplexWork(ctx: ExecutionContext, param1: String, param2: Int): String {
-            return "Result: $param1, $param2"
-        }
+        fun doComplexWork(
+            ctx: ExecutionContext,
+            param1: String,
+            param2: Int,
+        ): String = "Result: $param1, $param2"
     }
 }

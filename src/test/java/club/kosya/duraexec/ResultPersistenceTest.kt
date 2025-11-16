@@ -1,10 +1,11 @@
 package club.kosya.duraexec
 
-import club.kosya.duraexec.ExecutionContext
-import club.kosya.duraexec.internal.Execution
-import club.kosya.duraexec.internal.ExecutionFlow
-import club.kosya.duraexec.internal.ExecutionStatus
-import club.kosya.duraexec.internal.ExecutionsRepository
+import club.kosya.lib.executionengine.ExecutedAction
+import club.kosya.lib.executionengine.Execution
+import club.kosya.lib.executionengine.ExecutionFlow
+import club.kosya.lib.executionengine.ExecutionStatus
+import club.kosya.lib.executionengine.ExecutionsRepository
+import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +18,6 @@ import java.util.*
  * Tests action result persistence and flow restoration.
  */
 class ResultPersistenceTest {
-
     private lateinit var objectMapper: ObjectMapper
     private lateinit var executions: ExecutionsRepository
     private lateinit var execution: Execution
@@ -27,13 +27,14 @@ class ResultPersistenceTest {
         objectMapper = ObjectMapper()
         executions = mock(ExecutionsRepository::class.java)
 
-        execution = Execution().apply {
-            id = 1L
-            status = ExecutionStatus.Running
-            queuedAt = LocalDateTime.now()
-            definition = byteArrayOf()
-            params = "{}"
-        }
+        execution =
+            Execution().apply {
+                id = 1L
+                status = ExecutionStatus.Running
+                queuedAt = LocalDateTime.now()
+                definition = byteArrayOf()
+                params = "{}"
+            }
 
         `when`(executions.findById(1L)).thenReturn(Optional.of(execution))
         `when`(executions.save(any(Execution::class.java))).thenReturn(execution)
@@ -42,7 +43,7 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores result in ExecutedAction`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act
         val result = ctx.action("fetch") { "test-result" }
@@ -64,7 +65,7 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores null result`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act
         ctx.action("process") { null }
@@ -78,8 +79,12 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores complex object result`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
-        data class TestData(val value: String, val count: Int)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+
+        data class TestData(
+            val value: String,
+            val count: Int,
+        )
 
         // Act
         val result = ctx.action("compute") { TestData("test", 42) }
@@ -94,7 +99,7 @@ class ResultPersistenceTest {
     @Test
     fun `test multiple actions store results`() {
         // Arrange
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
 
         // Act
         ctx.action("first") { "result1" }
@@ -117,15 +122,15 @@ class ResultPersistenceTest {
         // Arrange - create existing flow state
         val existingFlow = ExecutionFlow("1")
         existingFlow.actions.add(
-            club.kosya.duraexec.internal.ExecutedAction("0").apply {
+            ExecutedAction("0").apply {
                 name = "existing"
                 result = "\"cached\""
-            }
+            },
         )
         execution.state = objectMapper.writeValueAsString(existingFlow)
 
         // Act
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
         val result = ctx.action("existing") { "new-execution" }
 
         // Assert - should re-execute and UPDATE cached result
@@ -142,7 +147,7 @@ class ResultPersistenceTest {
         execution.state = null
 
         // Act
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
         ctx.action("first") { "result" }
 
         // Assert
@@ -158,7 +163,7 @@ class ResultPersistenceTest {
         execution.state = objectMapper.writeValueAsString(existingFlow)
 
         // Act
-        val ctx = ExecutionContext("1", objectMapper, executions)
+        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
         ctx.action("first") { "a" }
         ctx.action("second") { "b" }
 

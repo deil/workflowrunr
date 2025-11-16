@@ -1,4 +1,4 @@
-package club.kosya.duraexec;
+package club.kosya.duraexec.internal;
 
 import lombok.Data;
 

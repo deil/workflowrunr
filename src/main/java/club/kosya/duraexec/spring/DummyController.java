@@ -1,7 +1,7 @@
 package club.kosya.duraexec.spring;
 
-import club.kosya.duraexec.ExecutionContext;
-import club.kosya.duraexec.Workflow;
+import club.kosya.lib.workflow.ExecutionContext;
+import club.kosya.lib.workflow.Workflow;
 import club.kosya.duraexec.workflows.TranscribeVideoWorkflow;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.RequiredArgsConstructor;

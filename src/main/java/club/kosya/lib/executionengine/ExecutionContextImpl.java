@@ -1,6 +1,6 @@
-package club.kosya.duraexec.internal;
+package club.kosya.lib.executionengine;
 
-import club.kosya.duraexec.ExecutionResult;
+import club.kosya.duraexec.internal.ExecutionResult;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
