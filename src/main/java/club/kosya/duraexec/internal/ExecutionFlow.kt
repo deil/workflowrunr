@@ -1,13 +1,18 @@
 package club.kosya.duraexec.internal
 
-class ExecutionFlow(
-    val id: String,
+data class ExecutionFlow(
+    val id: String = "",
+    val actions: MutableList<ExecutedAction> = mutableListOf()
 ) {
-    val actions = mutableListOf<ExecutedAction>()
+    constructor(id: String) : this(id, mutableListOf())
 }
 
-class ExecutedAction(
-    val id: String,
+data class ExecutedAction(
+    val id: String = "",
+    var name: String? = null,
+    var result: String? = null,
+    var resultType: String? = null,
+    val childActions: MutableList<ExecutedAction> = mutableListOf()
 ) {
-    val childActions = mutableListOf<ExecutedAction>()
+    constructor(id: String) : this(id, null, null, null, mutableListOf())
 }

@@ -4,38 +4,43 @@ import club.kosya.duraexec.ExecutionContext;
 import club.kosya.duraexec.ExecutionResult;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 
 import static club.kosya.duraexec.internal.ExecutionContextImpl.executeProcess;
 
 @Slf4j
+@Component
 public class TranscribeVideoWorkflow {
     @SneakyThrows
-    public String run(ExecutionContext ctx, String videoFile) {
-        log.info("run(ctx={}, videoFile={})", ctx, videoFile);
+    public String processVideo(ExecutionContext ctx, String videoFile) {
+        log.info("processVideo(ctx={}, videoFile={})", ctx, videoFile);
 
         var videoPath = Paths.get(System.getProperty("user.dir")).resolve(videoFile);
         if (!Files.exists(videoPath)) {
             throw new IllegalArgumentException("Video file does not exist: " + videoFile);
         }
 
-        var audioFile = ctx.action("Extract audio track", () -> extractAudio(videoPath));
+        ctx.sleep(Duration.ofSeconds(5));
+
+        var audioFile = ctx.await("Extract audio track", () -> extractAudio(videoPath));
         try {
-            return ctx.action("Transcribe audio to text", () -> transcribeAudio(audioFile));
+            return ctx.await("Transcribe audio to text", () -> transcribeAudio(audioFile));
         } finally {
             Files.deleteIfExists(audioFile);
         }
     }
 
     private Path extractAudio(Path videoFile) {
-        String videoFileName = videoFile.getFileName().toString();
-        String audioFileName = videoFileName.replaceFirst("\\.[^.]+$", ".wav");
-        Path audioFile = videoFile.getParent().resolve(audioFileName);
+        var videoFileName = videoFile.getFileName().toString();
+        var audioFileName = videoFileName.replaceFirst("\\.[^.]+$", ".wav");
+        var audioFile = videoFile.getParent().resolve(audioFileName);
 
-        ExecutionResult result = executeProcess("ffmpeg",
+        var result = executeProcess("ffmpeg",
                 "-i", videoFile.toString(),
                 "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
                 "-y", audioFile.toString());

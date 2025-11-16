@@ -1,101 +1,172 @@
-# WorkflowRunR POC
+# WorkflowRunR
+
+> **Research Preview** - This is an active development project exploring workflow execution patterns. APIs and architecture may change significantly as the research evolves.
+
+A workflow execution engine that enables complex, restartable processes with external dependencies.
 
 ## Core Purpose
-**WorkflowRunR** is a workflow execution engine that enables complex, restartable processes with external dependencies.
 
-## Current Status
+WorkflowRunR allows developers to write workflows as regular Java/Kotlin code while providing automatic persistence, error tracking, and restartability. Think of it as giving your long-running processes the ability to survive crashes, restarts, and failures without losing progress.
 
-This is a **proof-of-concept** demonstrating the core workflow execution. The Spring Boot components are boilerplate for demonstration purposes.
+## How It Works
 
-### Lambda serialization
+At its heart, WorkflowRunR solves a fundamental problem: what happens when your complex multi-step process fails halfway through? Traditional approaches either restart everything from scratch or require complex manual state management. WorkflowRunR automatically tracks each step, preserves the state, and can resume exactly where it left off.
 
-The lambda serialization system exists to implement the fundamental concept: enable workflows to be scheduled on another thread and restarted later on in case of a failure. The goal is to allow the developers define their workflows as a class with an entry point method, and trigger them as a Java 8 lambda:
+The magic happens through lambda serialization - the system analyzes your workflow code, extracts the method calls and parameters, and stores everything needed to reconstruct and resume the workflow later.
+
+## Architecture
+
+### Lambda Processing Library (`lib/lambda/`)
+
+This is the brain of the system - it understands how to read your lambda expressions and turn them into something that can be stored and reconstructed.
+
+**Public API:**
+- `WorkflowLambda` - The main functional interface for defining workflows
+- `TypedWorkflowLambda` - A type-safe version that explicitly specifies the bean class
+- `LambdaSerializer` - Converts lambda expressions into serialized byte arrays
+- `LambdaMethodInvocationParser` - Analyzes lambda bytecode to extract method calls
+- `TypedLambdaMethodInvocationParser` - Handles typed lambdas with bean class extraction
+
+**Internal Implementation (`lib/lambda/internal/`):**
+- `BaseLambdaMethodInvocationParser` - The core ASM bytecode parsing logic
+- `MethodInvocationInfo` - Data structure representing a method call
+- `TypedMethodInvocationInfo` - Extended version that includes bean class information
+- `ParameterSource` - Tracks whether parameters come from variables or constants
+
+### Workflow Engine (`duraexec/`)
+
+This is the runtime that actually executes your workflows and manages their lifecycle.
+
+**Core Components:**
+- `Workflow` - The main entry point for submitting and managing workflows
+- `ExecutionContext` - Tracks workflow execution with unique hierarchical IDs
+- `WorkflowAction` - Wraps individual steps with error handling and tracking
+- `WorkflowDefinitionConverter` - Converts parsed lambdas into executable workflow definitions
+- `WorkflowExecutor` - The engine that runs workflows and handles persistence
+
+**Data Layer:**
+- `Execution` - Database entity representing a workflow execution
+- `ExecutionStatus` - States in the workflow lifecycle (Queued, Running, Failed, Completed)
+- `ExecutionContextImpl` - Utility for running external processes like FFmpeg
+
+## Two Ways to Write Workflows
+
+### Instance Pattern (capture the bean)
+
 ```java
-Workflow.run(() -> new TranscribeVideoWorkflow().run(ctx, fileName));
+Workflow.run(() -> videoWorkflow.run(ctx, fileName))
 ```
 
-The long-term vision is to be able to integrate with DI frameworks (like Spring) and achieve devex like the following, where `videoWorkflow` is a Java bean:
+In this pattern, you capture a specific bean instance in your lambda. The system analyzes the bytecode to figure out which bean and method you're calling. It's flexible and works well when you have a specific instance you want to use.
+
+### Typed Pattern (specify the bean class)
+
 ```java
-Workflow.run(() -> videoWorkflow.run(args))
+Workflow.<VideoWorkflow>run(x -> x.run(ctx, fileName))
 ```
 
-Analyzing lambda expression for further persistence and reconstruction is possible thanks to [SerializedLambda](https://docs.oracle.com/javase/8/docs/api/java/lang/invoke/SerializedLambda.html)
+Here you explicitly tell the system what type of bean you're using. The lambda parameter `x` becomes your bean instance. This approach is more type-safe and makes the intent clearer.
 
+## Real-World Example
 
-At the moment, the current implementation is very simple and has naive assumptions:
-- **Argument Ordering**: Expects `ExecutionContext` to be the first captured argument
-- **Argument Research**: Requires deeper investigation into argument types and values for robust serialization
+Here's how you might write a video processing workflow:
 
-
-## Architecture Overview
-
-### **Primary Innovation: Workflow Execution System**
-- **Hierarchical Tracking**: Each workflow gets an execution context ID, each step gets a unique action ID
-- **Error Isolation**: Precise identification of failed steps in complex multi-step processes
-- **External Process Integration**: Seamless execution of command-line tools (FFmpeg, Whisper, etc.)
-- **Lifecycle Management**: Complete workflow status tracking from queuing to completion
-- **Enhanced Persistence**: Workflow state and parameters preserved across restarts
-
-### **Secondary but Critical: Lambda Serialization System**
-- **Persistence Mechanism**: Enables workflows to be serialized and stored in database
-- **Restart Capability**: Failed or interrupted workflows can be resumed from any point
-- **Deferred Execution**: Workflows can be queued and executed asynchronously
-- **State Preservation**: Captured variables and context are maintained across restarts
-
-## Key Components
-
-### **Core Workflow Engine** (`internal/`)
-- `Workflow`: Main component for workflow submission and lifecycle management
-- `ExecutionContext`: Manages workflow execution with unique ID tracking
-- `WorkflowAction`: Wraps individual steps with error handling and tracking
-- `Execution`: Enhanced entity with status tracking
-- `ExecutionStatus`: Lifecycle states (Queued, Running, Failed, Completed)
-- `ExecutionContextImpl`: Utility for running external processes
-
-### **Serialization Layer** (`lib/lambda/`)
-- `WorkflowLambda`: Serializable functional interface for workflow definitions
-- `LambdaSerializer`: Converts lambda expressions to byte arrays using Java's `SerializedLambda`
-- `LambdaDeserializer`: Recreates lambdas at runtime with captured variables
-
-## Example Workflow
 ```java
 public String run(ExecutionContext ctx, String videoFile) {
-    var audioFile = ctx.action("Extract audio track", () -> extractAudio(videoPath));
-    return ctx.action("Transcribe audio to text", () -> transcribeAudio(audioFile));
+    // Step 1: Extract audio from video
+    var audioFile = ctx.action("Extract audio track", () -> 
+        extractAudio(videoFile)
+    );
+    
+    // Step 2: Transcribe the audio to text
+    var transcript = ctx.action("Transcribe audio to text", () -> 
+        transcribeAudio(audioFile)
+    );
+    
+    // Step 3: Generate summary
+    return ctx.action("Generate summary", () -> 
+        summarizeText(transcript)
+    );
 }
 ```
 
-Each `action()` call creates a trackable step with unique ID for monitoring and debugging.
+Each `action()` call creates a trackable step with a unique ID. If step 2 fails, the system knows exactly what failed and can restart from step 2 with all the context from step 1 preserved.
 
-## Value Proposition
+## What Makes This Powerful
 
-**Problem Solved**: Complex workflows with external dependencies are lost on application restart. No native way to persist and resume multi-step processes.
+**Hierarchical Tracking**: Every workflow execution gets a unique ID, and every action within that workflow gets its own sequential ID. This creates a clear hierarchy for debugging and monitoring.
 
-**Solution**:
-- ✅ Workflows persist across application restarts
-- ✅ Precise error tracking and debugging
-- ✅ Resumable workflows with state preservation
-- ✅ Seamless integration with external tools
-- ✅ Workflow lifecycle management with status tracking
-- ✅ Enhanced parameter handling and state preservation
+**Error Isolation**: When something fails, you know exactly which step failed and why. No more digging through logs to figure out where your 10-step process went wrong.
 
-## Potential Applications
-- Media processing pipelines (video/audio transcoding)
-- Data processing workflows (ETL jobs, report generation)
-- Integration workflows (API orchestration)
-- Long-running background jobs with resumable state
+**External Process Integration**: Seamlessly run command-line tools like FFmpeg, Whisper, or any other external process while maintaining the same tracking and restart capabilities.
+
+**State Preservation**: All captured variables, method parameters, and intermediate results are automatically preserved. When a workflow restarts, it has access to everything it needs.
+
+**Lambda Serialization**: The system can serialize your entire workflow - the method calls, the captured variables, everything - and store it in the database for later reconstruction.
 
 ## Technical Stack
-- **Java 21** with Spring Boot 3.5.4
-- **Kotlin** for some components
-- **MySQL** for persistence with Flyway migrations
-- **Docker Compose** for development database
+
+- **Java 21** - Modern Java with latest language features
+- **Spring Boot 3.5.4** - Used for development convenience only (API layer, database setup, dependency injection)
+- **Kotlin** for some components - Where Kotlin makes the code cleaner and more concise
+- **MySQL** for persistence with Flyway migrations - Reliable database with version-controlled schema
+- **Docker Compose** for development - Easy local development setup
+- **ASM** for lambda bytecode analysis - The library that makes lambda parsing possible
+
+> **Note on Spring Boot**: The current implementation uses Spring Boot for development simplicity - it provides the API layer, database configuration, and dependency injection out of the box. However, the core workflow engine is designed to be framework-agnostic. Future versions will decouple from Spring Boot entirely, allowing integration with any DI framework or standalone usage.
 
 ## Getting Started
-1. Start the MySQL database: `docker-compose up`
-2. Run the application: `./gradlew bootRun`
-3. Submit a workflow via API: `POST http://localhost:8080` with `{"file": "video.mp4"}`
 
-The system will automatically handle workflow queuing and execution.
+1. **Start the database**: `docker-compose up`
+2. **Run the application**: `./gradlew bootRun`
+3. **Submit a workflow**: `POST http://localhost:8080` with `{"file": "video.mp4"}`
 
-The system enables writing workflows as regular Java/Kotlin code while providing persistence and restartability built-in.
+The system takes care of everything else - queuing, execution, tracking, persistence, and restartability.
+
+## Test Organization
+
+The test suite follows a clear structure that mirrors the codebase:
+
+```
+src/test/java/
+├── club/kosya/duraexec/
+│   ├── ActionIdTest.kt                    # Tests action ID generation and hierarchy
+│   ├── ResultPersistenceTest.kt             # Tests saving/loading workflow results
+│   └── ResultTypeTest.kt                  # Tests type handling for results
+└── club/kosya/lib/lambda/
+    └── parse/
+        ├── BasicLambdaTest.kt               # Core lambda parsing functionality
+        ├── ExecutionContextPlaceholderTest.kt # Static field access in lambdas
+        ├── JavaRecordTest.java              # Java record field accessor support
+        └── MethodCallParameterTest.kt       # Method calls as lambda parameters
+```
+
+All tests follow the AAA pattern (Arrange-Act-Assert) with descriptive names that explain exactly what behavior is being tested.
+
+## Current Status & Roadmap
+
+This is a **research preview** demonstrating core workflow execution concepts. The implementation is actively evolving as we explore different patterns and approaches.
+
+**What's Working:**
+- Lambda serialization and bytecode analysis
+- Two workflow patterns (instance and typed)
+- Hierarchical action tracking
+- Basic persistence and restart capability
+- External process integration
+
+**What's Being Researched:**
+- More sophisticated error recovery strategies
+- Distributed workflow execution
+- Advanced parameter type handling
+- Performance optimization for large workflows
+- Integration patterns with popular frameworks
+
+**Why This Matters**
+
+In a world of microservices and distributed systems, long-running processes are inevitable. Video processing, data migrations, report generation, API orchestration - these are all workflows that need to be reliable and restartable.
+
+WorkflowRunR provides the foundation for building these systems without having to reinvent state management, error tracking, and restart logic every time. Write your business logic once, and let WorkflowRunR handle the operational concerns.
+
+---
+
+*Note: This is research code, not production-ready software. Use for learning and experimentation, not for critical production workloads.*

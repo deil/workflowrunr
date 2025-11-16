@@ -19,18 +19,18 @@ public class ExecutionContextImpl {
 
     @SneakyThrows
     public static ExecutionResult executeProcess(File workingDirectory, String executable, String... args) {
-        String[] command = new String[args.length + 1];
+        var command = new String[args.length + 1];
         command[0] = executable;
         System.arraycopy(args, 0, command, 1, args.length);
 
-        ProcessBuilder pb = new ProcessBuilder(command);
+        var pb = new ProcessBuilder(command);
         if (workingDirectory != null) {
             pb.directory(workingDirectory);
         }
 
-        Process process = pb.start();
+        var process = pb.start();
 
-        StringBuilder output = new StringBuilder();
+        var output = new StringBuilder();
         try (var reader = process.inputReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -38,7 +38,7 @@ public class ExecutionContextImpl {
             }
         }
 
-        int exitCode = process.waitFor();
+        var exitCode = process.waitFor();
 
         return new ExecutionResult(exitCode, output.toString().trim());
     }

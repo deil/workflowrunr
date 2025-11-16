@@ -1,4 +1,6 @@
-package club.kosya.lib.lambda;
+package club.kosya.lib.lambda.internal;
+
+import club.kosya.lib.lambda.WorkflowLambda;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,6 +14,14 @@ import static org.springframework.util.ReflectionUtils.makeAccessible;
 
 public class LambdaSerializer {
     public static SerializationResult serialize(WorkflowLambda lambda) {
+        return serializeGeneric(lambda);
+    }
+
+    public static <T extends Serializable> SerializationResult serialize(T lambda) {
+        return serializeGeneric(lambda);
+    }
+
+    private static <T> SerializationResult serializeGeneric(T lambda) {
         var serializedLambda = toSerializedLambda(lambda);
         var args = new ArrayList<Object>();
         for (var i = 0; i < serializedLambda.getCapturedArgCount(); i++) {
