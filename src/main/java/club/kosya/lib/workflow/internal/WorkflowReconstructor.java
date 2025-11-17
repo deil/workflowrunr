@@ -1,19 +1,19 @@
 package club.kosya.lib.workflow.internal;
 
+import club.kosya.lib.deserialization.ObjectDeserializer;
 import club.kosya.lib.workflow.ExecutionContext;
 import club.kosya.lib.workflow.ServiceInstanceProvider;
 import club.kosya.lib.workflow.WorkflowDefinition;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 import java.util.ArrayList;
 import java.util.function.Supplier;
 
+@RequiredArgsConstructor
 public class WorkflowReconstructor {
     private final ServiceInstanceProvider instanceProvider;
-
-    public WorkflowReconstructor(ServiceInstanceProvider instanceProvider) {
-        this.instanceProvider = instanceProvider;
-    }
+    private final ObjectDeserializer objectDeserializer;
 
     public Object reconstructAndExecute(WorkflowDefinition definition, Supplier<ExecutionContext> executionCtxHolder) {
         var bean = instanceProvider.getInstance(definition.getServiceIdentifier());
@@ -24,7 +24,7 @@ public class WorkflowReconstructor {
             if (param.getType() != null && param.getType().equals(ExecutionContext.class.getName())) {
                 methodArgs.add(executionCtxHolder.get());
             } else {
-                methodArgs.add(param.getValue());
+                methodArgs.add(objectDeserializer.deserialize(param.getType(), param.getValue() != null ? param.getValue().toString() : null));
             }
         }
 

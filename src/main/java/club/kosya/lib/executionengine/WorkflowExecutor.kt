@@ -1,6 +1,9 @@
 package club.kosya.lib.executionengine
 
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
+import club.kosya.lib.deserialization.internal.ObjectDeserializerImpl
+import club.kosya.lib.executionengine.internal.ExecutionContextImpl
+import club.kosya.lib.executionengine.internal.ExecutionsRepository
+import club.kosya.lib.workflow.ServiceInstanceProvider
 import club.kosya.lib.workflow.WorkflowDefinition
 import club.kosya.lib.workflow.internal.WorkflowReconstructor
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -8,24 +11,27 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
-import java.util.function.Supplier
 
 @Component
 class WorkflowExecutor(
     private val objectMapper: ObjectMapper,
-    private val workflowReconstructor: WorkflowReconstructor,
     private val executions: ExecutionsRepository,
+    instanceProvider: ServiceInstanceProvider,
 ) {
+    private val objectDeserializer = ObjectDeserializerImpl(objectMapper)
+    private val workflowReconstructor = WorkflowReconstructor(instanceProvider, objectDeserializer)
+
     @Scheduled(fixedDelay = 1000L)
     fun tick() {
         executions
             .findAll()
             .forEach { wf ->
-                execute(wf)
+                execute(wf.id)
             }
     }
 
-    private fun execute(execution: Execution) {
+    private fun execute(executionId: Long) {
+        var execution = executions.findById(executionId).get()
         log.info("Executing workflow: executionId={}", execution.id)
 
         if (execution.status != ExecutionStatus.Queued) {
@@ -53,14 +59,16 @@ class WorkflowExecutor(
             )
 
             val executionContext =
-                ExecutionContextImplementation(
+                ExecutionContextImpl(
                     execution.id.toString(),
                     objectMapper,
                     executions,
+                    objectDeserializer,
                 )
 
             val result = workflowReconstructor.reconstructAndExecute(definition) { executionContext }
 
+            execution = executions.findById(execution.id).get()
             execution.status = ExecutionStatus.Completed
             execution.completedAt = LocalDateTime.now()
             executions.save(execution)

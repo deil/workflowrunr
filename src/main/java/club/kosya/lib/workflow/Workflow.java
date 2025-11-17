@@ -1,8 +1,8 @@
 package club.kosya.lib.workflow;
 
-import club.kosya.lib.executionengine.Execution;
+import club.kosya.lib.executionengine.internal.Execution;
 import club.kosya.lib.executionengine.ExecutionStatus;
-import club.kosya.lib.executionengine.ExecutionsRepository;
+import club.kosya.lib.executionengine.internal.ExecutionsRepository;
 import club.kosya.lib.lambda.TypedWorkflowLambda;
 import club.kosya.lib.lambda.WorkflowLambda;
 import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter;

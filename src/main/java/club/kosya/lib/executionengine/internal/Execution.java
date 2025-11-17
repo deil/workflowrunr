@@ -1,5 +1,6 @@
-package club.kosya.lib.executionengine;
+package club.kosya.lib.executionengine.internal;
 
+import club.kosya.lib.executionengine.ExecutionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

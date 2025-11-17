@@ -1,4 +1,4 @@
-package club.kosya.lib.executionengine
+package club.kosya.lib.executionengine.internal
 
 import org.springframework.data.jpa.repository.JpaRepository
 

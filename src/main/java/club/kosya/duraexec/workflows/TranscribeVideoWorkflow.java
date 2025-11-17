@@ -1,7 +1,7 @@
 package club.kosya.duraexec.workflows;
 
-import club.kosya.lib.workflow.ExecutionContext;
 import club.kosya.duraexec.internal.ExecutionResult;
+import club.kosya.lib.workflow.ExecutionContext;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 
 import static club.kosya.lib.executionengine.ExecutionContextImpl.executeProcess;
 
@@ -25,11 +24,11 @@ public class TranscribeVideoWorkflow {
             throw new IllegalArgumentException("Video file does not exist: " + videoFile);
         }
 
-        ctx.sleep(Duration.ofSeconds(5));
+        ctx.await("42", () -> 42);
 
         var audioFile = ctx.await("Extract audio track", () -> extractAudio(videoPath));
         try {
-            return ctx.await("Transcribe audio to text", () -> transcribeAudio(audioFile));
+            return "hello world"; // ctx.await("Transcribe audio to text", () -> transcribeAudio(audioFile));
         } finally {
             Files.deleteIfExists(audioFile);
         }

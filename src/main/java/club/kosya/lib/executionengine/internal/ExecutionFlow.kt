@@ -1,4 +1,4 @@
-package club.kosya.lib.executionengine
+package club.kosya.lib.executionengine.internal
 
 data class ExecutionFlow(
     val id: String = "",
@@ -12,7 +12,8 @@ data class ExecutedAction(
     var name: String? = null,
     var result: String? = null,
     var resultType: String? = null,
+    var completed: Boolean = false,
     val childActions: MutableList<ExecutedAction> = mutableListOf(),
 ) {
-    constructor(id: String) : this(id, null, null, null, mutableListOf())
+    constructor(id: String) : this(id, null, null, null, false, mutableListOf())
 }

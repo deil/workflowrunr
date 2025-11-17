@@ -1,6 +1,5 @@
 package club.kosya.lib.lambda.parse
 
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
 import club.kosya.lib.lambda.WorkflowLambda
 import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter

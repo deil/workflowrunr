@@ -1,4 +1,4 @@
-package club.kosya.lib.executionengine
+package club.kosya.lib.executionengine.internal
 
 import club.kosya.lib.workflow.ExecutionContext
 import org.slf4j.LoggerFactory

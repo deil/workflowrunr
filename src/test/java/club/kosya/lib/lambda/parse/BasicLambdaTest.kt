@@ -27,9 +27,7 @@ class BasicLambdaTest {
 
         // Act
         val definition =
-            converter.toWorkflowDefinition(
-                WorkflowLambda { testService.doWork(ctx, param1) },
-            )
+            converter.toWorkflowDefinition { testService.doWork(ctx, param1) }
 
         // Assert
         assertNotNull(definition)
@@ -53,9 +51,7 @@ class BasicLambdaTest {
 
         // Act
         val definition =
-            converter.toWorkflowDefinition(
-                WorkflowLambda { testService.doComplexWork(ctx, param1, param2) },
-            )
+            converter.toWorkflowDefinition { testService.doComplexWork(ctx, param1, param2) }
 
         // Assert
         assertNotNull(definition)

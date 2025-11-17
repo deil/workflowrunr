@@ -1,26 +1,29 @@
 package club.kosya.lib.executionengine.internal;
 
-import club.kosya.lib.executionengine.ExecutedAction;
-import club.kosya.lib.executionengine.ExecutionFlow;
-import club.kosya.lib.executionengine.ExecutionsRepository;
+import club.kosya.lib.deserialization.ObjectDeserializer;
 import club.kosya.lib.workflow.ExecutionContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.function.Supplier;
 
 @Slf4j
-public class ExecutionContextImplementation implements ExecutionContext {
+public class ExecutionContextImpl implements ExecutionContext {
     private final ObjectMapper objectMapper;
     private final ExecutionsRepository executions;
     private final ExecutionFlow flow;
     private final Deque<Integer> actionCounterStack;
+    private final ObjectDeserializer deserializerRegistry;
 
-    public ExecutionContextImplementation(String id, ObjectMapper objectMapper, ExecutionsRepository executions) {
+    public ExecutionContextImpl(String id, ObjectMapper objectMapper, ExecutionsRepository executions, ObjectDeserializer deserializerRegistry) {
         this.objectMapper = objectMapper;
         this.executions = executions;
+        this.deserializerRegistry = deserializerRegistry;
         this.actionCounterStack = new ArrayDeque<>();
 
         if (id == null) {
@@ -61,18 +64,26 @@ public class ExecutionContextImplementation implements ExecutionContext {
         return action(name, lambda);
     }
 
-    @Override
     public <R> R action(String name, Supplier<R> lambda) {
         var actionId = generateActionId(name);
         var tracking = findOrCreateAction(actionId);
         tracking.setName(name);
 
-        var action = new club.kosya.lib.executionengine.WorkflowAction(this, tracking.getId(), name);
+        if (tracking.getCompleted()) {
+            try {
+                return (R) deserializerRegistry.deserialize(tracking.getResultType(), tracking.getResult());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to deserialize cached result", e);
+            }
+        }
+
+        var action = new WorkflowAction(this, tracking.getId(), name);
         var result = action.execute(lambda::get);
 
         try {
             tracking.setResult(objectMapper.writeValueAsString(result));
             tracking.setResultType(result != null ? result.getClass().getName() : null);
+            tracking.setCompleted(true);
             persistFlowState();
         } catch (Exception e) {
             throw new RuntimeException("Failed to persist action result", e);
@@ -93,13 +104,13 @@ public class ExecutionContextImplementation implements ExecutionContext {
 
     private ExecutedAction findOrCreateAction(String actionId) {
         return flow.getActions().stream()
-            .filter(a -> a.getId().equals(actionId))
-            .findFirst()
-            .orElseGet(() -> {
-                var newAction = new ExecutedAction(actionId);
-                flow.getActions().add(newAction);
-                return newAction;
-            });
+                .filter(a -> a.getId().equals(actionId))
+                .findFirst()
+                .orElseGet(() -> {
+                    var newAction = new ExecutedAction(actionId);
+                    flow.getActions().add(newAction);
+                    return newAction;
+                });
     }
 
     public String generateActionId(String name) {

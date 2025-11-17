@@ -1,10 +1,10 @@
-package club.kosya.duraexec
+package club.kosya.lib.executionengine
 
-import club.kosya.lib.executionengine.Execution
-import club.kosya.lib.executionengine.ExecutionFlow
-import club.kosya.lib.executionengine.ExecutionStatus
-import club.kosya.lib.executionengine.ExecutionsRepository
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
+import club.kosya.lib.deserialization.internal.ObjectDeserializerImpl
+import club.kosya.lib.executionengine.internal.Execution
+import club.kosya.lib.executionengine.internal.ExecutionContextImpl
+import club.kosya.lib.executionengine.internal.ExecutionFlow
+import club.kosya.lib.executionengine.internal.ExecutionsRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -15,18 +15,17 @@ import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.util.*
 
-/**
- * Tests storing and restoring result types in ExecutionContext.
- */
 class ResultTypeTest {
     private lateinit var objectMapper: ObjectMapper
     private lateinit var executions: ExecutionsRepository
     private lateinit var execution: Execution
+    private lateinit var deserializer: ObjectDeserializerImpl
 
     @BeforeEach
     fun setUp() {
         objectMapper = ObjectMapper()
         executions = mock(ExecutionsRepository::class.java)
+        deserializer = ObjectDeserializerImpl(objectMapper)
 
         execution =
             Execution().apply {
@@ -44,7 +43,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for String`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("test") { "result" }
@@ -58,7 +57,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for Integer`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("test") { 42 }
@@ -72,7 +71,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for Path`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         val result = ctx.action("test") { Paths.get("/tmp/test.txt") }
@@ -88,7 +87,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for null`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("test") { null }
@@ -102,7 +101,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for custom class`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         data class CustomResult(
             val value: String,
@@ -119,7 +118,7 @@ class ResultTypeTest {
     @Test
     fun `test action stores result type for List`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("test") { listOf("a", "b", "c") }

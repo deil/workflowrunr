@@ -1,19 +1,15 @@
-package club.kosya.lib.workflow.internal
+package club.kosya.lib.workflow
 
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
-import club.kosya.lib.workflow.ServiceIdentifier
-import club.kosya.lib.workflow.ServiceInstanceProvider
-import club.kosya.lib.workflow.WorkflowDefinition
-import club.kosya.lib.workflow.WorkflowParameter
+import club.kosya.lib.deserialization.internal.ObjectDeserializerImpl
+import club.kosya.lib.executionengine.internal.ExecutionContextImpl
+import club.kosya.lib.executionengine.internal.ExecutionsRepository
+import club.kosya.lib.workflow.internal.WorkflowReconstructor
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
+import org.mockito.Mockito
 
-/**
- * Unit test for WorkflowReconstructor focusing on ExecutionContext injection behavior.
- */
 class WorkflowReconstructorTest {
     private lateinit var workflowReconstructor: WorkflowReconstructor
     private lateinit var testService: TestService
@@ -22,7 +18,6 @@ class WorkflowReconstructorTest {
     fun setUp() {
         testService = TestService()
 
-        // Create ServiceInstanceProvider that returns our test service
         val serviceInstanceProvider =
             ServiceInstanceProvider { serviceIdentifier ->
                 if (serviceIdentifier.className == TestService::class.java.name) {
@@ -32,7 +27,8 @@ class WorkflowReconstructorTest {
                 }
             }
 
-        workflowReconstructor = WorkflowReconstructor(serviceInstanceProvider)
+        val objectDeserializer = ObjectDeserializerImpl(ObjectMapper())
+        workflowReconstructor = WorkflowReconstructor(serviceInstanceProvider, objectDeserializer)
     }
 
     @Test
@@ -46,32 +42,31 @@ class WorkflowReconstructorTest {
                     listOf(
                         WorkflowParameter().apply {
                             name = "param0"
-                            type = club.kosya.lib.workflow.ExecutionContext::class.java.name
+                            type = ExecutionContext::class.java.name
                             value = null
                         },
                         WorkflowParameter().apply {
                             name = "param1"
                             value = "testParam"
                             type = "java.lang.String"
-                            type = "java.lang.String"
                         },
                     )
             }
 
+        val objectMapper = ObjectMapper()
         val executionContext =
-            ExecutionContextImplementation("123", ObjectMapper(), mock(club.kosya.lib.executionengine.ExecutionsRepository::class.java))
+            ExecutionContextImpl("123", objectMapper, Mockito.mock(ExecutionsRepository::class.java), ObjectDeserializerImpl(objectMapper))
 
         // Act
         val result = workflowReconstructor.reconstructAndExecute(definition) { executionContext }
 
         // Assert
-        assertEquals("Result: testParam", result)
-        assertNotNull(testService.lastExecutionContext, "ExecutionContext should not be null")
-        assertTrue(
+        Assertions.assertEquals("Result: testParam", result)
+        Assertions.assertNotNull(testService.lastExecutionContext, "ExecutionContext should not be null")
+        Assertions.assertTrue(
             testService.lastExecutionContext!!
-                .javaClass.name
-                .contains("ExecutionContextImplementation"),
-            "Should receive ExecutionContextImplementation instance",
+                .javaClass.name == ExecutionContextImpl::class.java.name,
+            "Should receive ExecutionContextImpl instance",
         )
     }
 
@@ -86,46 +81,44 @@ class WorkflowReconstructorTest {
                     listOf(
                         WorkflowParameter().apply {
                             name = "param0"
-                            type = club.kosya.lib.workflow.ExecutionContext::class.java.name
+                            type = ExecutionContext::class.java.name
                             value = null
                         },
                         WorkflowParameter().apply {
                             name = "param1"
                             value = "first"
                             type = "java.lang.String"
-                            type = "java.lang.String"
                         },
                         WorkflowParameter().apply {
                             name = "param2"
-                            value = 999
+                            value = "999"
                             type = "java.lang.Integer"
-                            type = "java.lang.String"
                         },
                         WorkflowParameter().apply {
                             name = "param3"
                             value = "second"
                             type = "java.lang.String"
-                            type = "java.lang.String"
                         },
                     )
             }
 
+        val objectMapper = ObjectMapper()
         val executionContext =
-            ExecutionContextImplementation("999", ObjectMapper(), mock(club.kosya.lib.executionengine.ExecutionsRepository::class.java))
+            ExecutionContextImpl("999", objectMapper, Mockito.mock(ExecutionsRepository::class.java), ObjectDeserializerImpl(objectMapper))
 
         // Act
         val result = workflowReconstructor.reconstructAndExecute(definition) { executionContext }
 
         // Assert
-        assertEquals("first-999-second", result)
-        assertNotNull(testService.lastExecutionContext)
+        Assertions.assertEquals("first-999-second", result)
+        Assertions.assertNotNull(testService.lastExecutionContext)
     }
 
     class TestService {
-        var lastExecutionContext: club.kosya.lib.workflow.ExecutionContext? = null
+        var lastExecutionContext: ExecutionContext? = null
 
         fun doWork(
-            ctx: club.kosya.lib.workflow.ExecutionContext,
+            ctx: ExecutionContext,
             input: Any,
         ): String {
             lastExecutionContext = ctx
@@ -133,7 +126,7 @@ class WorkflowReconstructorTest {
         }
 
         fun orderedWork(
-            ctx: club.kosya.lib.workflow.ExecutionContext,
+            ctx: ExecutionContext,
             text1: String,
             number: Int,
             text2: String,

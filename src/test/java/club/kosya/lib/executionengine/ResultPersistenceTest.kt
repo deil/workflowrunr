@@ -1,11 +1,11 @@
-package club.kosya.duraexec
+package club.kosya.lib.executionengine
 
-import club.kosya.lib.executionengine.ExecutedAction
-import club.kosya.lib.executionengine.Execution
-import club.kosya.lib.executionengine.ExecutionFlow
-import club.kosya.lib.executionengine.ExecutionStatus
-import club.kosya.lib.executionengine.ExecutionsRepository
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
+import club.kosya.lib.deserialization.internal.ObjectDeserializerImpl
+import club.kosya.lib.executionengine.internal.ExecutedAction
+import club.kosya.lib.executionengine.internal.Execution
+import club.kosya.lib.executionengine.internal.ExecutionContextImpl
+import club.kosya.lib.executionengine.internal.ExecutionFlow
+import club.kosya.lib.executionengine.internal.ExecutionsRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -14,18 +14,17 @@ import org.mockito.Mockito.*
 import java.time.LocalDateTime
 import java.util.*
 
-/**
- * Tests action result persistence and flow restoration.
- */
 class ResultPersistenceTest {
     private lateinit var objectMapper: ObjectMapper
     private lateinit var executions: ExecutionsRepository
     private lateinit var execution: Execution
+    private lateinit var deserializer: ObjectDeserializerImpl
 
     @BeforeEach
     fun setUp() {
         objectMapper = ObjectMapper()
         executions = mock(ExecutionsRepository::class.java)
+        deserializer = ObjectDeserializerImpl(objectMapper)
 
         execution =
             Execution().apply {
@@ -43,7 +42,7 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores result in ExecutedAction`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         val result = ctx.action("fetch") { "test-result" }
@@ -65,7 +64,7 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores null result`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("process") { null }
@@ -79,7 +78,7 @@ class ResultPersistenceTest {
     @Test
     fun `test action stores complex object result`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         data class TestData(
             val value: String,
@@ -99,7 +98,7 @@ class ResultPersistenceTest {
     @Test
     fun `test multiple actions store results`() {
         // Arrange
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
         ctx.action("first") { "result1" }
@@ -130,7 +129,7 @@ class ResultPersistenceTest {
         execution.state = objectMapper.writeValueAsString(existingFlow)
 
         // Act
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
         val result = ctx.action("existing") { "new-execution" }
 
         // Assert - should re-execute and UPDATE cached result
@@ -147,7 +146,7 @@ class ResultPersistenceTest {
         execution.state = null
 
         // Act
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
         ctx.action("first") { "result" }
 
         // Assert
@@ -163,7 +162,7 @@ class ResultPersistenceTest {
         execution.state = objectMapper.writeValueAsString(existingFlow)
 
         // Act
-        val ctx = ExecutionContextImplementation("1", objectMapper, executions)
+        val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
         ctx.action("first") { "a" }
         ctx.action("second") { "b" }
 
