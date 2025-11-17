@@ -1,8 +1,8 @@
 package club.kosya.lib.lambda.parse
 
 import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
-import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.lambda.WorkflowLambda
+import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -35,9 +35,9 @@ class ExecutionContextPlaceholderTest {
         // Assert
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
-        assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
-        assertNull(definition.parameters[0]) // ExecutionContext.Placeholder resolves to null during parsing
-        assertEquals("testValue", definition.parameters[1]) // Actual parameter is second
+        assertEquals(2, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+        assertEquals("testValue", definition.parameters[1].value)
     }
 
     class TestService {

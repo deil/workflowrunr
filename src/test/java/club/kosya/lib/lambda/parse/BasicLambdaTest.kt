@@ -1,17 +1,14 @@
 package club.kosya.lib.lambda.parse
 
-import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
-import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.lambda.TypedWorkflowLambda
 import club.kosya.lib.lambda.WorkflowLambda
+import club.kosya.lib.workflow.ExecutionContext
 import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-/**
- * Tests basic lambda parsing scenarios.
- */
 class BasicLambdaTest {
     private lateinit var converter: WorkflowDefinitionConverter
     private lateinit var testService: TestService
@@ -39,10 +36,12 @@ class BasicLambdaTest {
         assertNotNull(definition.serviceIdentifier)
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
-        assertNotNull(definition.methodDescriptor)
-        assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
-        assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
-        assertEquals(param1, definition.parameters[1]) // Actual parameter is second
+
+        assertEquals(2, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+        assertEquals("ctx", definition.parameters[0].name)
+        assertEquals("input", definition.parameters[1].name)
+        assertEquals(param1, definition.parameters[1].value)
     }
 
     @Test
@@ -62,10 +61,10 @@ class BasicLambdaTest {
         assertNotNull(definition)
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doComplexWork", definition.methodName)
-        assertEquals(3, definition.parameters.size) // Now includes ExecutionContext
-        assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
-        assertEquals(param1, definition.parameters[1]) // First actual parameter
-        assertEquals(param2, definition.parameters[2]) // Second actual parameter
+        assertEquals(3, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+        assertEquals(param1, definition.parameters[1].value)
+        assertEquals(param2, definition.parameters[2].value)
     }
 
     @Test
@@ -85,10 +84,12 @@ class BasicLambdaTest {
         assertNotNull(definition.serviceIdentifier)
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
-        assertNotNull(definition.methodDescriptor)
-        assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
-        assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
-        assertEquals(param1, definition.parameters[1]) // Actual parameter is second
+
+        assertEquals(2, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+        assertEquals("ctx", definition.parameters[0].name) // Real parameter name from method signature
+        assertEquals("input", definition.parameters[1].name) // Real parameter name from method signature
+        assertEquals(param1, definition.parameters[1].value)
     }
 
     @Test
@@ -108,10 +109,10 @@ class BasicLambdaTest {
         assertNotNull(definition)
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doComplexWork", definition.methodName)
-        assertEquals(3, definition.parameters.size) // Now includes ExecutionContext
-        assertEquals(ctx, definition.parameters[0]) // ExecutionContext is first
-        assertEquals(param1, definition.parameters[1]) // First actual parameter
-        assertEquals(param2, definition.parameters[2]) // Second actual parameter
+        assertEquals(3, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+        assertEquals(param1, definition.parameters[1].value)
+        assertEquals(param2, definition.parameters[2].value)
     }
 
     @Test

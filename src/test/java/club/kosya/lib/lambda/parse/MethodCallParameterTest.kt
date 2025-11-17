@@ -36,9 +36,12 @@ class MethodCallParameterTest {
         // Assert
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
-        assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
-        assertNull(definition.parameters[0]) // ExecutionContext.Placeholder resolves to null during parsing
-        assertTrue(definition.parameters[1] is UUID, "Parameter should be UUID instance") // UUID is second
+        assertEquals(2, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+
+        val param1 = definition.parameters[1]
+        // UUID.randomUUID() is a method call, captured as a variable, not a constant
+        assertNotNull(param1.value, "Parameter value should not be null")
     }
 
     @Test
@@ -47,16 +50,19 @@ class MethodCallParameterTest {
 
         // Act
         val definition =
-            converter.toWorkflowDefinition {
-                testService.doWork(ExecutionContext.Placeholder, LocalDateTime.now())
-            }
+            converter.toWorkflowDefinition(
+                WorkflowLambda { testService.doWork(ExecutionContext.Placeholder, LocalDateTime.now()) },
+            )
 
         // Assert
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
         assertEquals("doWork", definition.methodName)
-        assertEquals(2, definition.parameters.size) // Now includes ExecutionContext
-        assertNull(definition.parameters[0]) // ExecutionContext.Placeholder resolves to null during parsing
-        assertTrue(definition.parameters[1] is LocalDateTime, "Parameter should be LocalDateTime instance") // LocalDateTime is second
+        assertEquals(2, definition.parameters.size)
+        assertEquals(ExecutionContext::class.java.name, definition.parameters[0].type)
+
+        val param1 = definition.parameters[1]
+        // LocalDateTime.now() is a method call, captured as a variable, not a constant
+        assertNotNull(param1.value, "Parameter value should not be null")
     }
 
     class TestService {

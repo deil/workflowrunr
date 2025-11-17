@@ -41,7 +41,6 @@ public class Workflow {
         task.setStatus(ExecutionStatus.Queued);
         task.setQueuedAt(LocalDateTime.now());
 
-
         task.setDefinition(objectMapper.writeValueAsString(definition).getBytes());
         task.setParams(objectMapper.writeValueAsString(definition.getParameters()));
 

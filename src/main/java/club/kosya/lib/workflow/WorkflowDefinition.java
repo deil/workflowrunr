@@ -8,6 +8,5 @@ import java.util.List;
 public class WorkflowDefinition {
     private ServiceIdentifier serviceIdentifier;
     private String methodName;
-    private String methodDescriptor;
-    private List<Object> parameters;
+    private List<WorkflowParameter> parameters;
 }

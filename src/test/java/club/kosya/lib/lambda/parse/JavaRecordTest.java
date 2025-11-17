@@ -1,5 +1,6 @@
 package club.kosya.lib.lambda.parse;
 
+
 import club.kosya.lib.workflow.ExecutionContext;
 import club.kosya.lib.workflow.internal.WorkflowDefinitionConverter;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +33,8 @@ class JavaRecordTest {
         assertEquals(TestService.class.getName(), definition.getServiceIdentifier().className());
         assertEquals("doWork", definition.getMethodName());
         assertEquals(2, definition.getParameters().size());
-        assertNull(definition.getParameters().get(0));
-        assertEquals("testFile", definition.getParameters().get(1));
+        assertEquals(ExecutionContext.class.getName(), definition.getParameters().get(0).getType());
+        assertEquals("testFile", definition.getParameters().get(1).getValue());
     }
 
     @Test
@@ -49,10 +50,10 @@ class JavaRecordTest {
         // Assert
         assertEquals(TestService.class.getName(), definition.getServiceIdentifier().className());
         assertEquals("doWork", definition.getMethodName());
-        assertEquals(3, definition.getParameters().size()); // Now includes ExecutionContext
-        assertNull(definition.getParameters().get(0)); // ExecutionContext.Placeholder resolves to null during parsing
-        assertEquals("testFile", definition.getParameters().get(1)); // First actual parameter
-        assertEquals(new Point(640, 480), definition.getParameters().get(2)); // Second actual parameter
+        assertEquals(3, definition.getParameters().size());
+        assertEquals(ExecutionContext.class.getName(), definition.getParameters().get(0).getType());
+        assertEquals("testFile", definition.getParameters().get(1).getValue());
+        assertEquals(new Point(640, 480), definition.getParameters().get(2).getValue());
     }
 
     record Request(String file, Point pt) {

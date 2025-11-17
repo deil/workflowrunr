@@ -1,12 +1,14 @@
 package club.kosya.lib.executionengine
 
-import club.kosya.lib.workflow.ExecutionContext
+import club.kosya.lib.executionengine.internal.ExecutionContextImplementation
 import club.kosya.lib.workflow.WorkflowDefinition
 import club.kosya.lib.workflow.internal.WorkflowReconstructor
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
+import java.util.function.Supplier
 
 @Component
 class WorkflowExecutor(
@@ -14,7 +16,7 @@ class WorkflowExecutor(
     private val workflowReconstructor: WorkflowReconstructor,
     private val executions: ExecutionsRepository,
 ) {
-    // @Scheduled(fixedDelay = 1000L)
+    @Scheduled(fixedDelay = 1000L)
     fun tick() {
         executions
             .findAll()
@@ -51,13 +53,13 @@ class WorkflowExecutor(
             )
 
             val executionContext =
-                club.kosya.lib.executionengine.internal.ExecutionContextImplementation(
+                ExecutionContextImplementation(
                     execution.id.toString(),
                     objectMapper,
                     executions,
                 )
 
-            val result = workflowReconstructor.reconstructAndExecute(definition, executionContext)
+            val result = workflowReconstructor.reconstructAndExecute(definition) { executionContext }
 
             execution.status = ExecutionStatus.Completed
             execution.completedAt = LocalDateTime.now()

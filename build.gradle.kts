@@ -36,6 +36,7 @@ dependencies {
     implementation("org.flywaydb:flyway-mysql")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.ow2.asm:asm:9.7")
+    implementation("org.jspecify:jspecify:1.0.0")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
