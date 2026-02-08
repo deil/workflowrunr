@@ -1,77 +1,75 @@
+import com.diffplug.gradle.spotless.SpotlessExtension
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.compile.JavaCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
-    java
-    id("org.springframework.boot") version "2.7.18"
-    id("io.spring.dependency-management") version "1.1.7"
-    kotlin("jvm")
-    kotlin("plugin.lombok")
-    id("org.jetbrains.kotlin.plugin.spring")
-    id("io.freefair.lombok") version "8.13.1"
-    id("com.diffplug.spotless") version "7.0.2"
+    id("org.springframework.boot") version "2.7.18" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
+    kotlin("jvm") apply false
+    kotlin("plugin.lombok") apply false
+    id("org.jetbrains.kotlin.plugin.spring") apply false
+    id("io.freefair.lombok") version "8.13.1" apply false
+    id("com.diffplug.spotless") version "7.0.2" apply false
 }
 
 group = "club.kosya"
 version = "0.0.1-SNAPSHOT"
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+subprojects {
+    apply(plugin = "com.diffplug.spotless")
+
+    repositories {
+        mavenCentral()
     }
-}
 
-configurations {
-    compileOnly {
-        extendsFrom(configurations.annotationProcessor.get())
+    pluginManager.withPlugin("java") {
+        extensions.configure<JavaPluginExtension> {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(21))
+            }
+        }
+
+        configurations.named("compileOnly") {
+            extendsFrom(configurations.named("annotationProcessor").get())
+        }
+
+        dependencies {
+            add("annotationProcessor", "org.projectlombok:lombok")
+            add("compileOnly", "org.projectlombok:lombok")
+        }
+
+        tasks.withType<JavaCompile>().configureEach {
+            options.compilerArgs.add("-parameters")
+        }
     }
-}
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    annotationProcessor("org.projectlombok:lombok")
-    compileOnly("org.projectlombok:lombok")
-
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-mysql")
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.ow2.asm:asm:9.7")
-    implementation("org.jspecify:jspecify:1.0.0")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-
-    runtimeOnly("com.mysql:mysql-connector-j")
-
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-}
-
-tasks.compileJava {
-    dependsOn(tasks.spotlessApply)
-}
-
-tasks.compileKotlin {
-    dependsOn(tasks.spotlessApply)
-}
-
-spotless {
-    java {
-        palantirJavaFormat()
-        removeUnusedImports()
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+        tasks.withType<KotlinCompile>().configureEach {
+            compilerOptions {
+                javaParameters.set(true)
+            }
+        }
     }
-    kotlin {
-        ktlint().editorConfigOverride(
-            mapOf(
-                "ktlint_standard_no-wildcard-imports" to "disabled",
-            ),
-        )
-        trimTrailingWhitespace()
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
+
+    pluginManager.withPlugin("com.diffplug.spotless") {
+        extensions.configure<SpotlessExtension> {
+            java {
+                palantirJavaFormat()
+                removeUnusedImports()
+            }
+            kotlin {
+                ktlint().editorConfigOverride(
+                    mapOf(
+                        "ktlint_standard_no-wildcard-imports" to "disabled",
+                    ),
+                )
+                trimTrailingWhitespace()
+            }
+        }
     }
 }
