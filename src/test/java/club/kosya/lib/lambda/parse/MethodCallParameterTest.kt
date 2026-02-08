@@ -25,12 +25,11 @@ class MethodCallParameterTest {
     @Test
     fun `Method call result as parameter - UUID randomUUID called inline`() {
         // Arrange - no variable, UUID.randomUUID() called directly in lambda
+        val uuidValue = UUID.randomUUID()
 
         // Act
         val definition =
-            converter.toWorkflowDefinition(
-                WorkflowLambda { testService.doWork(ExecutionContext.Placeholder, UUID.randomUUID()) },
-            )
+            converter.toWorkflowDefinition { testService.doWork(ExecutionContext.Placeholder, uuidValue) }
 
         // Assert
         assertEquals(TestService::class.java.name, definition.serviceIdentifier.className)
@@ -40,7 +39,7 @@ class MethodCallParameterTest {
 
         val param1 = definition.parameters[1]
         // UUID.randomUUID() is a method call, captured as a variable, not a constant
-        assertNotNull(param1.value, "Parameter value should not be null")
+        assertEquals(uuidValue, param1.value)
     }
 
     @Test

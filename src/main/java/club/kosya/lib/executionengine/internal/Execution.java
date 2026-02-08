@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -39,4 +40,6 @@ public class Execution {
     private LocalDateTime startedAt;
 
     private LocalDateTime completedAt;
+
+    private Instant wakeAt;
 }

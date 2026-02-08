@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.Instant
 import java.time.LocalDateTime
 
 @Component
@@ -23,28 +24,35 @@ class WorkflowExecutor(
 
     @Scheduled(fixedDelay = 1000L)
     fun tick() {
-        executions
-            .findAll()
-            .forEach { wf ->
-                execute(wf.id)
-            }
-    }
-
-    private fun execute(executionId: Long) {
-        var execution = executions.findById(executionId).get()
-        log.info("Executing workflow: executionId={}", execution.id)
-
-        if (execution.status != ExecutionStatus.Queued) {
-            log.warn(
-                "Execution {} is not in Queued status, skipping. Current status: {}",
-                execution.id,
-                execution.status,
-            )
-            return
+        // Poll queued workflows
+        executions.findByStatus(ExecutionStatus.Queued).forEach { wf ->
+            execute(wf.id, isResume = false)
         }
 
-        execution.status = ExecutionStatus.Running
-        execution.startedAt = LocalDateTime.now()
+        // Poll sleeping workflows (Running with past wakeAt)
+        executions.findByWakeAtLessThanEqual(Instant.now()).forEach { wf ->
+            log.info("Resuming sleeping workflow: executionId={}", wf.id)
+            execute(wf.id, isResume = true)
+        }
+    }
+
+    private fun execute(
+        executionId: Long,
+        isResume: Boolean = false,
+    ) {
+        var execution = executions.findById(executionId).get()
+        log.info("Executing workflow: executionId={}, isResume={}", execution.id, isResume)
+
+        if (execution.status == ExecutionStatus.Queued) {
+            execution.status = ExecutionStatus.Running
+            execution.startedAt = LocalDateTime.now()
+        }
+
+        // Clear wakeAt if resuming from sleep
+        if (isResume) {
+            execution.wakeAt = null
+        }
+
         executions.save(execution)
 
         try {

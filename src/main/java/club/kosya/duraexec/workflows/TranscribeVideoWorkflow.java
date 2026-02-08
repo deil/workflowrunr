@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 
 import static club.kosya.lib.executionengine.ExecutionContextImpl.executeProcess;
 
@@ -28,7 +29,7 @@ public class TranscribeVideoWorkflow {
 
         var audioFile = ctx.await("Extract audio track", () -> extractAudio(videoPath));
         try {
-            return "hello world"; // ctx.await("Transcribe audio to text", () -> transcribeAudio(audioFile));
+            return ctx.await("Transcribe audio to text", () -> transcribeAudio(audioFile));
         } finally {
             Files.deleteIfExists(audioFile);
         }
