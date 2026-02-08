@@ -6,6 +6,9 @@ plugins {
     id("io.freefair.lombok")
 }
 
+group = "club.kosya.workflowrunr"
+version = "0.1.0-SNAPSHOT"
+
 extra["kotlin.version"] = "2.2.20"
 
 dependencyManagement {

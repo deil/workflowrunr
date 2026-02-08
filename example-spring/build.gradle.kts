@@ -10,7 +10,7 @@ plugins {
 extra["kotlin.version"] = "2.2.20"
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":workflowrunr-core"))
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.flywaydb:flyway-core")

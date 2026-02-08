@@ -19,3 +19,10 @@ out/
 .DS_Store
 whisper/
 video*
+
+# noise from Java LSP
+.project
+.classpath
+.factorypath
+bin/
+.settings/

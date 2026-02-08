@@ -8,3 +8,5 @@ pluginManagement {
 
 rootProject.name = "workflowrunr"
 include("core", "example-spring")
+
+findProject(":core")?.name = "workflowrunr-core"
