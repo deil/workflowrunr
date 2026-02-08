@@ -12,8 +12,12 @@ public class MethodInvocationInfo {
     private final String methodDescriptor;
     private final List<ParameterSource> parameterSources;
 
-    public MethodInvocationInfo(int targetVarIndex, String ownerClass, String methodName, 
-                           String methodDescriptor, List<ParameterSource> parameterSources) {
+    public MethodInvocationInfo(
+            int targetVarIndex,
+            String ownerClass,
+            String methodName,
+            String methodDescriptor,
+            List<ParameterSource> parameterSources) {
         this.targetVarIndex = targetVarIndex;
         this.ownerClass = ownerClass;
         this.methodName = methodName;

@@ -1,17 +1,15 @@
 package club.kosya.duraexec.workflows;
 
+import static club.kosya.lib.executionengine.ExecutionContextImpl.executeProcess;
+
 import club.kosya.duraexec.internal.ExecutionResult;
 import club.kosya.lib.workflow.ExecutionContext;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-
-import static club.kosya.lib.executionengine.ExecutionContextImpl.executeProcess;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
@@ -40,10 +38,19 @@ public class TranscribeVideoWorkflow {
         var audioFileName = videoFileName.replaceFirst("\\.[^.]+$", ".wav");
         var audioFile = videoFile.getParent().resolve(audioFileName);
 
-        var result = executeProcess("ffmpeg",
-                "-i", videoFile.toString(),
-                "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
-                "-y", audioFile.toString());
+        var result = executeProcess(
+                "ffmpeg",
+                "-i",
+                videoFile.toString(),
+                "-vn",
+                "-acodec",
+                "pcm_s16le",
+                "-ar",
+                "16000",
+                "-ac",
+                "1",
+                "-y",
+                audioFile.toString());
 
         if (!result.isSuccess()) {
             throw new RuntimeException("FFmpeg failed with exit code: " + result.getExitCode());
@@ -55,7 +62,12 @@ public class TranscribeVideoWorkflow {
     private String transcribeAudio(Path audioFile) {
         ExecutionResult result = executeProcess(
                 Paths.get(System.getProperty("user.dir"), "whisper").toFile(),
-                "uv", "run", "whisper", audioFile.toString(), "--model", "base");
+                "uv",
+                "run",
+                "whisper",
+                audioFile.toString(),
+                "--model",
+                "base");
 
         if (!result.isSuccess()) {
             throw new RuntimeException("Whisper transcription failed with exit code: " + result.getExitCode());

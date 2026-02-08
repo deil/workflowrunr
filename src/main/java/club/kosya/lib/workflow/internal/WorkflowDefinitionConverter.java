@@ -1,5 +1,7 @@
 package club.kosya.lib.workflow.internal;
 
+import static club.kosya.lib.lambda.internal.LambdaSerializer.serialize;
+
 import club.kosya.lib.lambda.TypedWorkflowLambda;
 import club.kosya.lib.lambda.WorkflowLambda;
 import club.kosya.lib.lambda.internal.LambdaMethodInvocationParser;
@@ -7,11 +9,8 @@ import club.kosya.lib.lambda.internal.TypedLambdaMethodInvocationParser;
 import club.kosya.lib.workflow.ServiceIdentifier;
 import club.kosya.lib.workflow.WorkflowDefinition;
 import club.kosya.lib.workflow.WorkflowParameter;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
-
-import static club.kosya.lib.lambda.internal.LambdaSerializer.serialize;
+import org.springframework.stereotype.Component;
 
 @Component
 public class WorkflowDefinitionConverter {
@@ -122,9 +121,9 @@ public class WorkflowDefinitionConverter {
             throw new RuntimeException("Class not found: " + className, e);
         }
 
-        throw new IllegalArgumentException("Method not found: " + methodName + " with " + paramCount + " parameters in " + className);
+        throw new IllegalArgumentException(
+                "Method not found: " + methodName + " with " + paramCount + " parameters in " + className);
     }
 
-    private record ParameterInfo(String[] paramNames, String[] typeNames) {
-    }
+    private record ParameterInfo(String[] paramNames, String[] typeNames) {}
 }

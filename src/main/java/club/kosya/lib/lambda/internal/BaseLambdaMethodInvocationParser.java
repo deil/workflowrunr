@@ -1,12 +1,10 @@
 package club.kosya.lib.lambda.internal;
 
-import org.objectweb.asm.*;
-
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.invoke.SerializedLambda;
 import java.util.ArrayList;
 import java.util.List;
+import org.objectweb.asm.*;
 
 /**
  * Base class for parsing lambda bytecode using ASM to extract method invocation information.
@@ -17,21 +15,19 @@ public abstract class BaseLambdaMethodInvocationParser {
     // Wrapper to distinguish constants from variable indices
     protected static class ConstantValue {
         final Object value;
+
         ConstantValue(Object value) {
             this.value = value;
         }
     }
 
     protected static MethodInvocationInfo parseLambdaBytecode(
-            SerializedLambda serializedLambda,
-            List<Object> capturedArgs) {
+            SerializedLambda serializedLambda, List<Object> capturedArgs) {
         return parseLambdaBytecode(serializedLambda, capturedArgs, false);
     }
 
     protected static MethodInvocationInfo parseLambdaBytecode(
-            SerializedLambda serializedLambda,
-            List<Object> capturedArgs,
-            boolean isTypedLambda) {
+            SerializedLambda serializedLambda, List<Object> capturedArgs, boolean isTypedLambda) {
         String capturingClassName = serializedLambda.getCapturingClass().replace('/', '.');
         String lambdaMethodName = serializedLambda.getImplMethodName();
 
@@ -80,7 +76,8 @@ public abstract class BaseLambdaMethodInvocationParser {
         }
 
         @Override
-        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        public MethodVisitor visitMethod(
+                int access, String name, String descriptor, String signature, String[] exceptions) {
             if (name.equals(targetMethodName)) {
                 return new MethodInvocationVisitor(capturedArgs, isTypedLambda);
             }
@@ -115,22 +112,26 @@ public abstract class BaseLambdaMethodInvocationParser {
                 if (isTypedLambda && varIndex > 0) {
                     adjustedIndex = varIndex - 1; // Skip bean parameter at index 0
                 }
-                
+
                 if (adjustedIndex >= 0 && adjustedIndex < capturedArgs.size()) {
                     return capturedArgs.get(adjustedIndex);
                 }
-                throw new IndexOutOfBoundsException("Variable index " + varIndex + " (adjusted: " + adjustedIndex + 
-                    ") out of bounds for captured args size " + capturedArgs.size());
+                throw new IndexOutOfBoundsException("Variable index " + varIndex + " (adjusted: " + adjustedIndex
+                        + ") out of bounds for captured args size " + capturedArgs.size());
             }
 
             @Override
             public void visitVarInsn(int opcode, int var) {
                 // Track ALL load instructions (references and primitives)
-                if (opcode == Opcodes.ALOAD ||  // reference
-                    opcode == Opcodes.ILOAD ||  // int
-                    opcode == Opcodes.LLOAD ||  // long
-                    opcode == Opcodes.FLOAD ||  // float
-                    opcode == Opcodes.DLOAD) {  // double
+                if (opcode == Opcodes.ALOAD
+                        || // reference
+                        opcode == Opcodes.ILOAD
+                        || // int
+                        opcode == Opcodes.LLOAD
+                        || // long
+                        opcode == Opcodes.FLOAD
+                        || // float
+                        opcode == Opcodes.DLOAD) { // double
                     stack.add(var); // Add variable index
                 }
             }
@@ -290,13 +291,8 @@ public abstract class BaseLambdaMethodInvocationParser {
                         }
                     }
 
-                    methodInvocationInfo = new MethodInvocationInfo(
-                        targetVarIndex,
-                        owner,
-                        name,
-                        descriptor,
-                        paramSources
-                    );
+                    methodInvocationInfo =
+                            new MethodInvocationInfo(targetVarIndex, owner, name, descriptor, paramSources);
 
                     // Pop target + params, push result
                     for (int i = 0; i < totalArgs; i++) {
@@ -338,10 +334,9 @@ public abstract class BaseLambdaMethodInvocationParser {
 
             private boolean isKotlinIntrinsic(String owner, String methodName) {
                 String className = owner.replace('/', '.');
-                return className.startsWith("kotlin.") && (
-                    methodName.startsWith("checkNotNull") ||
-                    methodName.startsWith("throwUninitializedPropertyAccessException")
-                );
+                return className.startsWith("kotlin.")
+                        && (methodName.startsWith("checkNotNull")
+                                || methodName.startsWith("throwUninitializedPropertyAccessException"));
             }
 
             private Class<?>[] parseParameterTypes(String descriptor) {
@@ -382,14 +377,14 @@ public abstract class BaseLambdaMethodInvocationParser {
                             case 'F' -> float.class;
                             case 'D' -> double.class;
                             case 'V' -> void.class;
-                            default -> throw new IllegalArgumentException("Unknown type: " + c);
-                        };
+                            default -> throw new IllegalArgumentException("Unknown type: " + c);};
                         i++;
                     }
 
                     var finalType = baseType;
                     for (int j = 0; j < arrayDimensions; j++) {
-                        finalType = java.lang.reflect.Array.newInstance(finalType, 0).getClass();
+                        finalType = java.lang.reflect.Array.newInstance(finalType, 0)
+                                .getClass();
                     }
 
                     types.add(finalType);

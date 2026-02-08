@@ -1,10 +1,9 @@
 package club.kosya.lib.lambda.internal;
 
-import club.kosya.lib.lambda.TypedWorkflowLambda;
-
-import java.util.List;
-
 import static club.kosya.lib.lambda.internal.LambdaSerializer.toSerializedLambda;
+
+import club.kosya.lib.lambda.TypedWorkflowLambda;
+import java.util.List;
 
 /**
  * Parses typed lambda bytecode using ASM to extract method invocation information.
@@ -22,11 +21,10 @@ public class TypedLambdaMethodInvocationParser extends BaseLambdaMethodInvocatio
         var baseInfo = parseLambdaBytecode(serializedLambda, capturedArgs, true);
 
         return new TypedMethodInvocationInfo(
-            beanClassName,
-            baseInfo.getOwnerClass(),
-            baseInfo.getMethodName(),
-            baseInfo.getMethodDescriptor(),
-            baseInfo.getParameterSources()
-        );
+                beanClassName,
+                baseInfo.getOwnerClass(),
+                baseInfo.getMethodName(),
+                baseInfo.getMethodDescriptor(),
+                baseInfo.getParameterSources());
     }
 }

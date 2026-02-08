@@ -20,8 +20,7 @@ class BeansConfig {
     fun taskExecutor(): ExecutorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
 
     @Bean
-    fun serviceInstanceProvider(applicationContext: ApplicationContext): ServiceInstanceProvider =
-        SpringInstanceProvider(applicationContext)
+    fun serviceInstanceProvider(applicationContext: ApplicationContext): ServiceInstanceProvider = SpringInstanceProvider(applicationContext)
 
     @Bean
     fun objectDeserializer(objectMapper: ObjectMapper): ObjectDeserializer = ObjectDeserializerImpl(objectMapper)

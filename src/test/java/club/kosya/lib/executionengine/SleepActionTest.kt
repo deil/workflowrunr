@@ -5,11 +5,13 @@ import club.kosya.lib.executionengine.internal.Execution
 import club.kosya.lib.executionengine.internal.ExecutionContextImpl
 import club.kosya.lib.executionengine.internal.ExecutionFlow
 import club.kosya.lib.executionengine.internal.ExecutionsRepository
+import club.kosya.lib.executionengine.internal.WorkflowSuspendedException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.*
 import java.time.Duration
 import java.time.Instant
@@ -48,7 +50,9 @@ class SleepActionTest {
         val duration = Duration.ofSeconds(5)
 
         // Act
-        ctx.sleep(duration)
+        assertThrows<WorkflowSuspendedException> {
+            ctx.sleep(duration)
+        }
 
         // Assert
         val flow = objectMapper.readValue(execution.state, ExecutionFlow::class.java)
@@ -64,7 +68,9 @@ class SleepActionTest {
         val duration = Duration.ofSeconds(5)
 
         // Act
-        ctx.sleep(duration)
+        assertThrows<WorkflowSuspendedException> {
+            ctx.sleep(duration)
+        }
 
         // Assert
         assertNotNull(execution.wakeAt, "Execution should have wakeAt set")
@@ -77,7 +83,9 @@ class SleepActionTest {
         val ctx = ExecutionContextImpl("1", objectMapper, executions, deserializer)
 
         // Act
-        ctx.sleep(Duration.ofSeconds(5))
+        assertThrows<WorkflowSuspendedException> {
+            ctx.sleep(Duration.ofSeconds(5))
+        }
 
         // Assert
         val flow = objectMapper.readValue(execution.state, ExecutionFlow::class.java)
@@ -91,7 +99,9 @@ class SleepActionTest {
         val startTime = Instant.now()
 
         // Act
-        ctx.sleep(Duration.ofMillis(100))
+        assertThrows<WorkflowSuspendedException> {
+            ctx.sleep(Duration.ofMillis(100))
+        }
         val elapsed = Duration.between(startTime, Instant.now())
 
         // Assert - should return immediately, not wait 100ms
@@ -154,7 +164,9 @@ class SleepActionTest {
         val duration = Duration.ofMinutes(5)
 
         // Act
-        ctx.sleep(duration)
+        assertThrows<WorkflowSuspendedException> {
+            ctx.sleep(duration)
+        }
 
         // Assert
         val expectedWakeAt = beforeSleep.plus(duration)

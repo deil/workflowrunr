@@ -1,18 +1,18 @@
 package club.kosya.lib.executionengine.internal;
 
 import club.kosya.lib.executionengine.ExecutionStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.Data;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Version;
+import lombok.Data;
 
 @Data
 @Entity
@@ -42,4 +42,7 @@ public class Execution {
     private LocalDateTime completedAt;
 
     private Instant wakeAt;
+
+    @Version
+    private Long version;
 }

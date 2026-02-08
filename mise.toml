@@ -1,0 +1,6 @@
+[tools]
+java = "temurin-21"
+
+[tasks]
+start = "./gradlew bootRun"
+

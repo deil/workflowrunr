@@ -5,7 +5,8 @@ import java.util.function.Supplier;
 
 public interface ExecutionContext {
     <R> R await(String name, Supplier<R> lambda);
+
     void sleep(Duration duration);
-    
+
     ExecutionContext Placeholder = new ExecutionContextPlaceholder();
 }

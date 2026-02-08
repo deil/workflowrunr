@@ -1,7 +1,8 @@
 package club.kosya.lib.lambda.internal;
 
-import club.kosya.lib.lambda.WorkflowLambda;
+import static org.springframework.util.ReflectionUtils.makeAccessible;
 
+import club.kosya.lib.lambda.WorkflowLambda;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -9,8 +10,6 @@ import java.io.Serializable;
 import java.lang.invoke.SerializedLambda;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.springframework.util.ReflectionUtils.makeAccessible;
 
 public class LambdaSerializer {
     public static SerializationResult serialize(WorkflowLambda lambda) {
@@ -33,7 +32,8 @@ public class LambdaSerializer {
 
     public static <T> SerializedLambda toSerializedLambda(T value) {
         if (!value.getClass().isSynthetic()) {
-            throw new IllegalArgumentException("Please provide a lambda expression (e.g. BackgroundJob.enqueue(() -> myService.doWork()) instead of an actual implementation.");
+            throw new IllegalArgumentException(
+                    "Please provide a lambda expression (e.g. BackgroundJob.enqueue(() -> myService.doWork()) instead of an actual implementation.");
         }
 
         try {
@@ -47,7 +47,7 @@ public class LambdaSerializer {
 
     public static byte[] serializedLambdaToBytes(SerializedLambda serializedLambda) {
         try (var baos = new ByteArrayOutputStream();
-             var oos = new ObjectOutputStream(baos)) {
+                var oos = new ObjectOutputStream(baos)) {
             var data = new SerializedLambdaData(
                     serializedLambda.getCapturingClass(),
                     serializedLambda.getFunctionalInterfaceClass(),
@@ -58,8 +58,7 @@ public class LambdaSerializer {
                     serializedLambda.getImplMethodSignature(),
                     serializedLambda.getImplMethodKind(),
                     serializedLambda.getInstantiatedMethodType(),
-                    serializedLambda.getCapturedArgCount()
-            );
+                    serializedLambda.getCapturedArgCount());
 
             oos.writeObject(data);
             return baos.toByteArray();
@@ -68,12 +67,18 @@ public class LambdaSerializer {
         }
     }
 
-    record SerializedLambdaData(String capturingClass, String functionalInterfaceClass,
-                                String functionalInterfaceMethodName, String functionalInterfaceMethodSignature,
-                                String implClass, String implMethodName, String implMethodSignature, int implMethodKind,
-                                String instantiatedMethodType, int capturedArgsCount) implements Serializable {
-    }
+    record SerializedLambdaData(
+            String capturingClass,
+            String functionalInterfaceClass,
+            String functionalInterfaceMethodName,
+            String functionalInterfaceMethodSignature,
+            String implClass,
+            String implMethodName,
+            String implMethodSignature,
+            int implMethodKind,
+            String instantiatedMethodType,
+            int capturedArgsCount)
+            implements Serializable {}
 
-    public record SerializationResult(byte[] definition, List<Object> capturedArgs) {
-    }
+    public record SerializationResult(byte[] definition, List<Object> capturedArgs) {}
 }

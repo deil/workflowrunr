@@ -1,10 +1,9 @@
 package club.kosya.lib.lambda.internal;
 
-import club.kosya.lib.lambda.WorkflowLambda;
-
-import java.util.List;
-
 import static club.kosya.lib.lambda.internal.LambdaSerializer.toSerializedLambda;
+
+import club.kosya.lib.lambda.WorkflowLambda;
+import java.util.List;
 
 /**
  * Parses lambda bytecode using ASM to extract method invocation information.

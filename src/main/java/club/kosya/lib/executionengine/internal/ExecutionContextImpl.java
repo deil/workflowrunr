@@ -1,10 +1,9 @@
 package club.kosya.lib.executionengine.internal;
 
 import club.kosya.lib.deserialization.ObjectDeserializer;
+import club.kosya.lib.executionengine.ExecutionStatus;
 import club.kosya.lib.workflow.ExecutionContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ExecutionContextImpl implements ExecutionContext {
@@ -21,7 +21,11 @@ public class ExecutionContextImpl implements ExecutionContext {
     private final Deque<Integer> actionCounterStack;
     private final ObjectDeserializer deserializerRegistry;
 
-    public ExecutionContextImpl(String id, ObjectMapper objectMapper, ExecutionsRepository executions, ObjectDeserializer deserializerRegistry) {
+    public ExecutionContextImpl(
+            String id,
+            ObjectMapper objectMapper,
+            ExecutionsRepository executions,
+            ObjectDeserializer deserializerRegistry) {
         this.objectMapper = objectMapper;
         this.executions = executions;
         this.deserializerRegistry = deserializerRegistry;
@@ -50,43 +54,38 @@ public class ExecutionContextImpl implements ExecutionContext {
 
     @Override
     public void sleep(Duration duration) {
+        checkCancellation();
         var actionId = generateActionId("sleep");
         var tracking = findOrCreateAction(actionId);
         tracking.setName("sleep");
 
         if (tracking.getCompleted()) {
-            // Already slept, just return
             return;
         }
 
-        // If wakeAt exists and is in the past, mark complete and return
         if (tracking.getWakeAt() != null && tracking.getWakeAt().isBefore(Instant.now())) {
             tracking.setCompleted(true);
             tracking.setResult("null");
-            tracking.setWakeAt(null);  // Clear wakeAt after sleep completes
-            
-            // Clear execution wakeAt
+            tracking.setWakeAt(null);
+
             var execution = executions.findById(Long.parseLong(flow.getId())).get();
             execution.setWakeAt(null);
             executions.save(execution);
-            
+
             persistFlowState();
             return;
         }
 
-        // Calculate and store wake time
         var wakeAt = Instant.now().plus(duration);
         tracking.setWakeAt(wakeAt);
 
-        // Store wakeAt on execution entity for scheduler
         var execution = executions.findById(Long.parseLong(flow.getId())).get();
         execution.setWakeAt(wakeAt);
         executions.save(execution);
 
-        // Persist flow state with incomplete sleep action
         persistFlowState();
 
-        // Return immediately - don't block thread
+        throw new WorkflowSuspendedException("Workflow suspended for sleep until " + wakeAt);
     }
 
     @Override
@@ -95,6 +94,8 @@ public class ExecutionContextImpl implements ExecutionContext {
     }
 
     public <R> R action(String name, Supplier<R> lambda) {
+        checkCancellation();
+
         var actionId = generateActionId(name);
         var tracking = findOrCreateAction(actionId);
         tracking.setName(name);
@@ -192,5 +193,14 @@ public class ExecutionContextImpl implements ExecutionContext {
         if (flow == null) return;
 
         actionCounterStack.pop();
+    }
+
+    private void checkCancellation() {
+        if (flow == null) return;
+
+        var execution = executions.findById(Long.parseLong(flow.getId())).orElse(null);
+        if (execution != null && execution.getStatus() == ExecutionStatus.Cancelled) {
+            throw new WorkflowCanceledException("Workflow " + flow.getId() + " was cancelled");
+        }
     }
 }

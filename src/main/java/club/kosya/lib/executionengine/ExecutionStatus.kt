@@ -5,4 +5,5 @@ enum class ExecutionStatus {
     Failed,
     Running,
     Completed,
+    Cancelled,
 }

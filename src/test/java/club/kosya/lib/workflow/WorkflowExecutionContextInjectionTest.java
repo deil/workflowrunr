@@ -5,12 +5,11 @@ import club.kosya.lib.executionengine.internal.ExecutionContextImpl;
 import club.kosya.lib.executionengine.internal.ExecutionsRepository;
 import club.kosya.lib.workflow.internal.WorkflowReconstructor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import java.util.Arrays;
 
 class WorkflowExecutionContextInjectionTest {
     private WorkflowReconstructor workflowReconstructor;
@@ -39,24 +38,31 @@ class WorkflowExecutionContextInjectionTest {
         definition.setServiceIdentifier(new ServiceIdentifier(TestWorkflowService.class.getName()));
         definition.setMethodName("processVideo");
 
-        WorkflowParameter[] parameters = new WorkflowParameter[]{
-                new WorkflowParameter() {{
+        WorkflowParameter[] parameters = new WorkflowParameter[] {
+            new WorkflowParameter() {
+                {
                     setName("ctx");
                     setType(ExecutionContext.class.getName());
                     setValue(null);
-                }},
-                new WorkflowParameter() {{
+                }
+            },
+            new WorkflowParameter() {
+                {
                     setName("videoFile");
                     setType("java.lang.String");
                     setValue("test.mp4");
-                }}
+                }
+            }
         };
 
         definition.setParameters(Arrays.asList(parameters));
 
         var objectMapper = new ObjectMapper();
-        var executionContext =
-                new ExecutionContextImpl("123", objectMapper, Mockito.mock(ExecutionsRepository.class), new ObjectDeserializerImpl(objectMapper));
+        var executionContext = new ExecutionContextImpl(
+                "123",
+                objectMapper,
+                Mockito.mock(ExecutionsRepository.class),
+                new ObjectDeserializerImpl(objectMapper));
 
         // Act - WorkflowReconstructor should inject real ExecutionContext despite null value in definition
         Object result = workflowReconstructor.reconstructAndExecute(definition, () -> executionContext);
@@ -64,7 +70,8 @@ class WorkflowExecutionContextInjectionTest {
         // Assert - this should pass with the fix
         Assertions.assertNotNull(result, "Result should not be null");
         Assertions.assertNotNull(testService.getLastExecutionContext(), "ExecutionContext should not be null");
-        Assertions.assertTrue(testService.getLastExecutionContext() instanceof ExecutionContextImpl,
+        Assertions.assertTrue(
+                testService.getLastExecutionContext() instanceof ExecutionContextImpl,
                 "Should receive ExecutionContextImplementation instance");
         Assertions.assertEquals("Processed test.mp4", result, "Should process video correctly");
     }

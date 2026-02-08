@@ -1,10 +1,9 @@
 package club.kosya.lib.lambda.internal;
 
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * Information about a typed lambda method invocation.

@@ -1,8 +1,7 @@
 package club.kosya.lib.workflow;
 
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class WorkflowDefinition {
