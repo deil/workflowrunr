@@ -1,6 +1,8 @@
 package club.kosya.lib.workflow;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.function.Supplier;
 
 public final class ExecutionContextPlaceholder implements ExecutionContext {
@@ -8,11 +10,16 @@ public final class ExecutionContextPlaceholder implements ExecutionContext {
 
     @Override
     public <R> R await(String name, Supplier<R> lambda) {
-        throw new UnsupportedOperationException("Placeholder cannot await actions");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void sleep(Duration duration) {
-        throw new UnsupportedOperationException("Placeholder cannot sleep");
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void sleepUntil(Instant instant) {
+        throw new UnsupportedOperationException();
     }
 }

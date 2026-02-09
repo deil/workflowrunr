@@ -3,15 +3,18 @@ package club.kosya.lib.executionengine.internal;
 import club.kosya.lib.deserialization.ObjectDeserializer;
 import club.kosya.lib.executionengine.ExecutionStatus;
 import club.kosya.lib.workflow.ExecutionContext;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ExecutionContextImpl implements ExecutionContext {
@@ -53,53 +56,42 @@ public class ExecutionContextImpl implements ExecutionContext {
     }
 
     @Override
-    public void sleep(Duration duration) {
-        checkCancellation();
-        var actionId = generateActionId("sleep");
-        var tracking = findOrCreateAction(actionId);
-        tracking.setName("sleep");
+    public <R> R await(String name, Supplier<R> lambda) {
+        return action(name, lambda);
+    }
 
+    @Override
+    public void sleep(Duration duration) {
+        sleepUntil(Instant.now().plus(duration));
+    }
+
+    @Override
+    public void sleepUntil(Instant resumeAt) {
+        var tracking = findOrCreateActionByName("sleepUntil");
         if (tracking.getCompleted()) {
             return;
         }
 
         if (tracking.getWakeAt() != null && tracking.getWakeAt().isBefore(Instant.now())) {
             tracking.setCompleted(true);
-            tracking.setResult("null");
+            tracking.setResult(Instant.now().toString());
             tracking.setWakeAt(null);
 
-            var execution = executions.findById(Long.parseLong(flow.getId())).get();
-            execution.setWakeAt(null);
-            executions.save(execution);
+            updateExecution(it -> it.setWakeAt(null));
 
             persistFlowState();
             return;
         }
 
-        var wakeAt = Instant.now().plus(duration);
-        tracking.setWakeAt(wakeAt);
+        tracking.setWakeAt(resumeAt);
 
-        var execution = executions.findById(Long.parseLong(flow.getId())).get();
-        execution.setWakeAt(wakeAt);
-        executions.save(execution);
+        updateExecution(it -> it.setWakeAt(resumeAt));
 
-        persistFlowState();
-
-        throw new WorkflowSuspendedException("Workflow suspended for sleep until " + wakeAt);
-    }
-
-    @Override
-    public <R> R await(String name, Supplier<R> lambda) {
-        return action(name, lambda);
+        persistFlowStateAndYield("Workflow suspended for sleep until " + resumeAt);
     }
 
     public <R> R action(String name, Supplier<R> lambda) {
-        checkCancellation();
-
-        var actionId = generateActionId(name);
-        var tracking = findOrCreateAction(actionId);
-        tracking.setName(name);
-
+        var tracking = findOrCreateActionByName(name);
         if (tracking.getCompleted()) {
             try {
                 return (R) deserializerRegistry.deserialize(tracking.getResultType(), tracking.getResult());
@@ -124,13 +116,18 @@ public class ExecutionContextImpl implements ExecutionContext {
     }
 
     private void persistFlowState() {
-        try {
-            var execution = executions.findById(Long.parseLong(flow.getId())).get();
-            execution.setState(objectMapper.writeValueAsString(flow));
-            executions.save(execution);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to persist flow state", e);
-        }
+        updateExecution(it -> {
+            try {
+                it.setState(objectMapper.writeValueAsString(flow));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private void persistFlowStateAndYield(String message) {
+        persistFlowState();
+        throw new WorkflowSuspendedException(message);
     }
 
     private ExecutedAction findOrCreateAction(String actionId) {
@@ -144,7 +141,23 @@ public class ExecutionContextImpl implements ExecutionContext {
                 });
     }
 
-    public String generateActionId(String name) {
+    private ExecutedAction findOrCreateActionByName(String name) {
+        checkCancellation();
+
+        var actionId = generateActionId(name);
+        var tracking = findOrCreateAction(actionId);
+        tracking.setName(name);
+
+        return tracking;
+    }
+
+    private void updateExecution(Consumer<Execution> mutation) {
+        var execution = executions.findById(Long.parseLong(flow.getId())).get();
+        mutation.accept(execution);
+        executions.save(execution);
+    }
+
+    private String generateActionId(String name) {
         if (flow == null) {
             return "placeholder";
         }
@@ -181,18 +194,6 @@ public class ExecutionContextImpl implements ExecutionContext {
     private void incrementCurrentLevelCounter() {
         int current = actionCounterStack.pop();
         actionCounterStack.push(current + 1);
-    }
-
-    public void enterAction(String actionId) {
-        if (flow == null) return;
-
-        actionCounterStack.push(0);
-    }
-
-    public void exitAction() {
-        if (flow == null) return;
-
-        actionCounterStack.pop();
     }
 
     private void checkCancellation() {
