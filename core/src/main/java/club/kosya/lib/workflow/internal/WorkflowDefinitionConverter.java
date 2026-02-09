@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class WorkflowDefinitionConverter {
-
     public WorkflowDefinition toWorkflowDefinition(WorkflowLambda workflow) {
         var serializedData = serialize(workflow);
         var capturedArgs = serializedData.capturedArgs();

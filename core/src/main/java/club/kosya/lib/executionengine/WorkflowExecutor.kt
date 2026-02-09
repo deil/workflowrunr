@@ -27,12 +27,10 @@ class WorkflowExecutor(
 
     @Scheduled(fixedDelay = 1000L)
     fun tick() {
-        // Poll queued workflows
         executions.findByStatus(ExecutionStatus.Queued).forEach { wf ->
             execute(wf.id, isResume = false)
         }
 
-        // Poll sleeping workflows (Running with past wakeAt, excluding Cancelled)
         executions.findRunnableByWakeAtLessThanEqual(Instant.now()).forEach { wf ->
             log.info("Resuming sleeping workflow: executionId={}", wf.id)
             execute(wf.id, isResume = true)

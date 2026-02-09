@@ -13,6 +13,7 @@ class ObjectDeserializerImpl(
         mapOf(
             "sun.nio.fs.UnixPath" to PathDeserializer(),
             "java.lang.String" to stringDeserializer,
+            "java.time.LocalDateTime" to LocalDateTimeDeserializer(),
         )
 
     private val primitiveTypes =
